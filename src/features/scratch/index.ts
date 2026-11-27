@@ -9,10 +9,9 @@ import { useRemote } from "@/platform/remote";
 import { registerMenuGroup, registerOverlay, registerProjectViewRoot } from "@/workbench/contributions";
 import { ScratchChooserHost } from "./ScratchChooser";
 import { openChooser } from "./store";
-import { scratchBackend, consolesDir, scratchesAvailable, scratchesDir } from "./scratches";
+import { scratchBackend, scratchesAvailable, scratchesDir } from "./scratches";
 
 export const SCRATCHES_ROOT_LABEL = "Scratches";
-export const CONSOLES_ROOT_LABEL = "Database Consoles";
 
 export async function newScratchFile() {
   openChooser(await scratchBackend().languages());
@@ -21,33 +20,13 @@ export async function newScratchFile() {
 export function activate(): () => void {
   let disposed = false;
   let unregisterRoot = () => {};
-  let unregisterConsoles = () => {};
   let dir: string | null = null;
-  let consoles: string | null = null;
   let generation = 0;
   const registerRoot = () => {
     const current = ++generation;
     unregisterRoot();
-    unregisterConsoles();
     unregisterRoot = () => {};
-    unregisterConsoles = () => {};
     dir = null;
-    consoles = null;
-    // Query consoles are files too: listed beside the scratches so a closed console can be reopened.
-    void consolesDir()
-      .then((path) => {
-        if (disposed || current !== generation) return;
-        consoles = path;
-        unregisterConsoles = registerProjectViewRoot({
-          id: "database-consoles",
-          label: CONSOLES_ROOT_LABEL,
-          icon: "db-console",
-          path,
-          order: 11,
-          scope: "scratches",
-        });
-      })
-      .catch((e: unknown) => console.warn("scratch files: no database consoles folder", e));
     void scratchesDir()
       .then((path) => {
         if (disposed || current !== generation) return;
@@ -71,9 +50,7 @@ export function activate(): () => void {
     }),
     // The file watcher covers the project only: deleted scratches close their editors like watched files.
     onFileOperation((op) => {
-      const removed = [dir, consoles].flatMap((root) =>
-        root && op.kind === "deleted" ? op.paths.filter((p) => p === root || p.startsWith(`${root}/`)) : [],
-      );
+      const removed = dir && op.kind === "deleted" ? op.paths.filter((p) => p === dir || p.startsWith(`${dir}/`)) : [];
       if (removed.length) emitLocalIdeEvent({ type: "fsChanged", created: [], modified: [], removed });
     }),
     registerOverlay({ id: "scratch.chooser", component: ScratchChooserHost }),
@@ -99,7 +76,6 @@ export function activate(): () => void {
   return () => {
     disposed = true;
     unregisterRoot();
-    unregisterConsoles();
     disposers.reverse().forEach((d) => d());
   };
 }

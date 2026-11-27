@@ -14,8 +14,6 @@ export interface ScratchBackend {
   /** Absolute scratches folder, created. */
   scratchesDir(): Promise<string>;
   listNames(dir: string): Promise<string[]>;
-  /** Creates the folder (and parents) if missing; the database consoles' folder is made lazily by the host. */
-  createDir?(path: string): Promise<void>;
   createFile(path: string, text: string): Promise<void>;
   languages(): Promise<ScratchLanguage[]>;
   open(path: string, caret: { line: number; col: number } | null): Promise<void>;
@@ -24,7 +22,6 @@ export interface ScratchBackend {
 export const tauriScratchBackend: ScratchBackend = {
   scratchesDir: hostScratchesDir,
   listNames: async (dir) => (await call(commands.fsReadDir(dir))).map((e) => e.name),
-  createDir: async (path) => void (await call(commands.fsCreateDir(path))),
   createFile: async (path, text) =>
     void (await call(
       text ? commands.fsCreateFileBytes(path, toBase64(new TextEncoder().encode(text))) : commands.fsCreateFile(path),
@@ -45,17 +42,6 @@ export const scratchBackend = () => backend;
 /** The scratches folder, created if needed. */
 export async function scratchesDir(): Promise<string> {
   return (await backend.scratchesDir()).replace(/\/+$/, "");
-}
-
-/**
- * The database consoles' folder (`<data>/consoles/db`, a sibling of the scratches folder), created.
- * Query consoles are files there, listed in "Scratches and Consoles" so a closed console reopens.
- */
-export async function consolesDir(): Promise<string> {
-  const dir = `${(await scratchesDir()).replace(/\/[^/]*$/, "")}/consoles/db`;
-  // `fsCreateDir` fails on an existing folder, so create it only when it cannot be listed.
-  await backend.listNames(dir).catch(() => backend.createDir?.(dir));
-  return dir;
 }
 
 export const scratchesAvailable = () => isTauri() || backend !== tauriScratchBackend;
