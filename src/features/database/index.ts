@@ -27,6 +27,7 @@ import {
   toolWindowService,
 } from "@/workbench/contributions";
 import { installCellActions } from "./cellActions";
+import { installConsoleRoots } from "./consoleRoots";
 import { installValueEditorActions } from "./valueEditorActions";
 import { registerResultTabActions } from "./resultTabActions";
 import { SQL_LANGUAGE } from "./sqlLanguage";
@@ -226,6 +227,7 @@ export function activate(): () => void {
     }),
     () => setFileDecorations("database", new Map()),
     watchIdleConnections(),
+    installConsoleRoots(),
     installTableEditorFocus(),
     installValueEditorActions(),
     installCellActions(),
