@@ -53,7 +53,8 @@ export async function scratchesDir(): Promise<string> {
  */
 export async function consolesDir(): Promise<string> {
   const dir = `${(await scratchesDir()).replace(/\/[^/]*$/, "")}/consoles/db`;
-  await backend.createDir?.(dir);
+  // `fsCreateDir` fails on an existing folder, so create it only when it cannot be listed.
+  await backend.listNames(dir).catch(() => backend.createDir?.(dir));
   return dir;
 }
 
