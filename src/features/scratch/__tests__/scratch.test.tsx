@@ -146,6 +146,11 @@ describe("creating scratch files", () => {
         expect(useProjectViewRoots.getState().roots.get("scratches")?.path).toBe("/data/scratches"),
       );
       expect(useProjectViewRoots.getState().roots.get("scratches")?.label).toBe("Scratches");
+      // Query consoles sit beside the scratches, so a closed console reopens from there.
+      await vi.waitFor(() =>
+        expect(useProjectViewRoots.getState().roots.get("database-consoles")?.path).toBe("/data/consoles/db"),
+      );
+      expect(useProjectViewRoots.getState().roots.get("database-consoles")?.scope).toBe("scratches");
       const action = getAction("file.newScratchFile")!;
       expect(action.title).toBe("New Scratch File…");
       await act(async () => {
